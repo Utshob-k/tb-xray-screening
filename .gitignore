@@ -5,6 +5,9 @@ data/*
 *.pth
 results/*/model.pt
 
+# local tooling notes
+CLAUDE.md
+
 # python
 __pycache__/
 *.pyc
