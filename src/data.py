@@ -67,18 +67,31 @@ def make_transforms(train: bool, size: int = 224):
     return transforms.Compose(ops)
 
 
+_RESIZED: dict[tuple[Path, int], Image.Image] = {}
+
+
+def _load_resized(path: Path, size: int) -> Image.Image:
+    """Decode once and keep the resized image: the source PNGs are ~3000x3000 and decoding
+    them every epoch left the GPU idle."""
+    key = (Path(path), size)
+    if key not in _RESIZED:
+        image = Image.open(path).convert("RGB")  # X-rays are grayscale; the backbone wants 3 channels
+        _RESIZED[key] = transforms.Resize((size, size))(image)
+    return _RESIZED[key]
+
+
 class CxrDataset(Dataset):
     def __init__(self, samples, train: bool = False, size: int = 224):
         self.samples = list(samples)
-        self.tf = make_transforms(train, size)
+        # Same pipeline as make_transforms; its leading Resize is already applied by the cache.
+        self.tf = transforms.Compose(make_transforms(train, size).transforms[1:])
+        self.images = [_load_resized(p, size) for p, _ in self.samples]
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, i):
-        path, label = self.samples[i]
-        image = Image.open(path).convert("RGB")  # X-rays are grayscale; the backbone wants 3 channels
-        return self.tf(image), label
+        return self.tf(self.images[i]), self.samples[i][1]
 
     def labels(self) -> np.ndarray:
         return np.array([y for _, y in self.samples])
