@@ -1,0 +1,26 @@
+{
+  "in-domain (montgomery test split)": {
+    "n": 21,
+    "n_tb": 9,
+    "auroc": 0.9537037037037037,
+    "auroc_ci95": [
+      0.8499234693877551,
+      1.0
+    ],
+    "sensitivity": 0.3333333333333333,
+    "specificity": 1.0,
+    "threshold": 0.9621871113777161
+  },
+  "external (shenzhen, all images)": {
+    "n": 662,
+    "n_tb": 336,
+    "auroc": 0.8095968448729185,
+    "auroc_ci95": [
+      0.7784363896910736,
+      0.8407809779339255
+    ],
+    "sensitivity": 0.33630952380952384,
+    "specificity": 0.9570552147239264,
+    "threshold": 0.9621871113777161
+  }
+}
