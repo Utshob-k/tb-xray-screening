@@ -1,0 +1,13 @@
+# datasets and weights are large and have their own licences
+data/*
+!data/.gitkeep
+*.pt
+*.pth
+results/*/model.pt
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
