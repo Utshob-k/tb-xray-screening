@@ -47,6 +47,8 @@ def summarize(y_true, y_prob, threshold: float) -> dict:
         "auroc": auc,
         "auroc_ci95": bootstrap_ci(y_true, y_prob, roc_auc_score),
         "sensitivity": sens,
+        "sensitivity_ci95": bootstrap_ci(y_true, y_prob, lambda y, p: sens_spec(y, p, threshold)[0]),
         "specificity": spec,
+        "specificity_ci95": bootstrap_ci(y_true, y_prob, lambda y, p: sens_spec(y, p, threshold)[1]),
         "threshold": threshold,
     }

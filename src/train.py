@@ -28,11 +28,12 @@ def main():
     ap.add_argument("--batch-size", type=int, default=32)
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--run-dir", default=None, help="output folder (default: results/<train_on>)")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    out = Path("results") / args.train_on
+    out = Path(args.run_dir) if args.run_dir else Path("results") / args.train_on
     out.mkdir(parents=True, exist_ok=True)
 
     train_s, val_s, test_s = split_samples(list_samples(Path(args.data_root), args.train_on), seed=args.seed)

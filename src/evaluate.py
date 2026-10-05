@@ -24,10 +24,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--train-on", required=True, choices=list(DATASETS))
     ap.add_argument("--data-root", default="data")
+    ap.add_argument("--run-dir", default=None, help="folder written by src.train (default: results/<train_on>)")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    run = Path("results") / args.train_on
+    run = Path(args.run_dir) if args.run_dir else Path("results") / args.train_on
     model = build_model(pretrained=False)
     model.load_state_dict(torch.load(run / "model.pt", map_location="cpu"))
     model.to(device)

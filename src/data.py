@@ -75,8 +75,16 @@ def _load_resized(path: Path, size: int) -> Image.Image:
     them every epoch left the GPU idle."""
     key = (Path(path), size)
     if key not in _RESIZED:
-        image = Image.open(path).convert("RGB")  # X-rays are grayscale; the backbone wants 3 channels
-        _RESIZED[key] = transforms.Resize((size, size))(image)
+        # Lossless on-disk copy of the resized image, next to the data (not matched by the *.png glob),
+        # so separate runs do not each re-decode the full-size files.
+        disk = Path(path).parent / f".cache{size}" / f"{Path(path).stem}.png"
+        if disk.exists():
+            _RESIZED[key] = Image.open(disk).convert("RGB")
+        else:
+            image = Image.open(path).convert("RGB")  # X-rays are grayscale; the backbone wants 3 channels
+            _RESIZED[key] = transforms.Resize((size, size))(image)
+            disk.parent.mkdir(exist_ok=True)
+            _RESIZED[key].save(disk)
     return _RESIZED[key]
 
 
