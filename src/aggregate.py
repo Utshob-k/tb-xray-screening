@@ -1,9 +1,9 @@
-"""Mean and spread of the evaluation across seeds.
+"""Mean and spread of the results across seeds.
 
     python -m src.aggregate --train-on shenzhen --runs results/shenzhen results/seeds/shenzhen_seed1 ...
 
-Reads report.json from each run folder and prints a per-setting table plus
-mean and standard deviation across runs. Writes results/<train_on>/seeds_summary.json.
+Reads report.json from each run folder and prints the mean, standard
+deviation and range per metric. Writes results/<train_on>/seeds_summary.json.
 """
 from __future__ import annotations
 

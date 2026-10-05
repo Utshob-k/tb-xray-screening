@@ -1,10 +1,9 @@
-"""Evaluate a trained model in-domain and on the OTHER dataset (external validation).
+"""Test a trained model on its own test split and on the other dataset.
 
     python -m src.evaluate --train-on shenzhen
 
-The in-domain number uses the held-out test split saved at training time.
-The external number runs on EVERY image of the other dataset. The gap
-between the two is the headline result of this project.
+The test split is the one saved when the model was trained. The other
+dataset is used in full. The gap between the two is what this project is about.
 """
 from __future__ import annotations
 

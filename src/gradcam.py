@@ -1,10 +1,9 @@
-"""Grad-CAM heatmaps: where is the model looking?
+"""Grad-CAM heatmaps, to see where the model is looking.
 
     python -m src.gradcam --train-on shenzhen --images data/montgomery/MCUCXR_0001_0.png ...
 
-Worth checking by eye: a model that lights up on the image border, a
-text marker, or a scanner artefact instead of the lungs has learned a
-shortcut, and that is exactly what a cross-dataset test tends to expose.
+Worth a look by eye. If it lights up on a border, a text marker or a scanner
+artefact instead of the lungs, it has probably learned a shortcut.
 """
 from __future__ import annotations
 

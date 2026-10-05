@@ -1,14 +1,13 @@
-"""Dataset loading for the two public TB chest X-ray sets.
+"""Loads the two TB chest X-ray sets.
 
-Expected layout (see README, "Getting the data"):
+Layout (see the README):
 
     data/montgomery/*.png     e.g. MCUCXR_0001_0.png
     data/shenzhen/*.png       e.g. CHNCXR_0001_1.png
 
-Both sets encode the label in the file name: the digit after the last
-underscore is 0 for normal and 1 for TB. Each file is a different patient,
-so a random split of files is already a split by patient. If you add a set
-where one patient has several images, split on a patient id instead.
+The label is the last digit in the file name: 0 normal, 1 TB. Every file is a
+different patient, so a random split of files is a split by patient. A set
+with several images per patient would need splitting on patient id instead.
 """
 from __future__ import annotations
 
@@ -71,12 +70,12 @@ _RESIZED: dict[tuple[Path, int], Image.Image] = {}
 
 
 def _load_resized(path: Path, size: int) -> Image.Image:
-    """Decode once and keep the resized image: the source PNGs are ~3000x3000 and decoding
-    them every epoch left the GPU idle."""
+    """Decode and resize once, then reuse. The PNGs are about 3000x3000 and
+    decoding them every epoch left the GPU sitting idle."""
     key = (Path(path), size)
     if key not in _RESIZED:
-        # Lossless on-disk copy of the resized image, next to the data (not matched by the *.png glob),
-        # so separate runs do not each re-decode the full-size files.
+        # also cache the resized image on disk next to the data (the *.png glob skips it)
+        # so every run doesn't decode the big files again
         disk = Path(path).parent / f".cache{size}" / f"{Path(path).stem}.png"
         if disk.exists():
             _RESIZED[key] = Image.open(disk).convert("RGB")
@@ -91,7 +90,7 @@ def _load_resized(path: Path, size: int) -> Image.Image:
 class CxrDataset(Dataset):
     def __init__(self, samples, train: bool = False, size: int = 224):
         self.samples = list(samples)
-        # Same pipeline as make_transforms; its leading Resize is already applied by the cache.
+        # same transforms as make_transforms, minus the Resize the cache already did
         self.tf = transforms.Compose(make_transforms(train, size).transforms[1:])
         self.images = [_load_resized(p, size) for p, _ in self.samples]
 
