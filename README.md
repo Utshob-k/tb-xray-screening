@@ -1,118 +1,109 @@
-# TB chest X-ray screening: does it generalise?
+# TB chest X-ray screening: does it carry over to another hospital?
 
-A small, honest study of deep-learning tuberculosis screening from chest X-rays.
-The point is not a high accuracy number. It is measuring **how much a model's
-performance drops when it meets images from a different hospital**, and looking
-at why.
+I trained a ResNet-18 to spot tuberculosis on chest X-rays from one public
+dataset, then tested it on a dataset from a different hospital to see how much
+it drops. I care more about that drop than about a high score.
 
-> **Research demo only. Not a medical device and not for diagnosis.**
+This is a research demo. It is not a medical tool and should not be used to
+diagnose anything.
 
-## Question
+## What I did
 
-A ResNet-18 trained on one public TB dataset scores very well on a held-out
-slice of that same dataset. How does it do on a dataset from a different
-country, scanner and population, with the decision threshold fixed in advance?
+The data is two public sets from the US National Library of Medicine:
+Montgomery County (USA, 138 images) and Shenzhen (China, 662 images). Each file
+is a different patient, so splitting by file also splits by patient.
 
-## Method
+The model is an ImageNet-pretrained ResNet-18 with its last layer swapped for
+a single output. The loss is weighted for class imbalance, and I used light
+augmentation (small rotations and brightness changes, no flips).
 
-- **Data:** two public sets from the US National Library of Medicine, the
-  Montgomery County set (USA) and the Shenzhen set (China). One image per patient,
-  so splitting by file is a patient-level split.
-- **Model:** ImageNet-pretrained ResNet-18, single-logit head, class-weighted
-  loss, mild augmentation (no flips).
-- **Protocol:** train on A with a stratified train/val/test split. Pick the
-  threshold on A's **validation** set at 90% specificity. Evaluate on A's test
-  split (in-domain) and on **all** of B (external). Repeat with A and B swapped.
-- **Metrics:** AUROC with bootstrap 95% CIs, sensitivity and specificity at
-  the fixed threshold. Accuracy is deliberately not the headline: for screening,
-  missed cases and false alarms cost different things.
-- **Interpretation:** Grad-CAM heatmaps to check whether the model looks at the
-  lungs or at artefacts such as borders and markers.
+For each direction (train on A, test on B, then swap):
+
+1. Split A into train, validation and test (about 70/15/15).
+2. Train for 15 epochs and keep the epoch with the best validation AUROC.
+3. Pick the decision threshold on the validation split, at 90% specificity.
+   The test data never touches this.
+4. Test on A's own test split and on every image of B.
+
+I report AUROC, sensitivity and specificity. Accuracy is not the headline,
+because for screening a missed case and a false alarm cost different things.
+
+Each direction was run with 5 seeds. The seed changes both the split and the
+initial weights, so the spread below includes both.
 
 ## Results
 
-One run per direction (seed 0, one split, 15 epochs, best epoch by validation
-AUROC). The threshold was fixed on the training set's validation split at 90%
-specificity and never changed. Sensitivity and specificity come with counts
-because the sets are small.
+Mean ± standard deviation over 5 seeds.
 
-| Trained on | Tested on | n (TB) | AUROC (95% CI) | Sensitivity | Specificity |
+| Trained on | Tested on | Images (TB) | AUROC | Sensitivity | Specificity |
 |---|---|---|---|---|---|
-| Shenzhen | Shenzhen (test split) | 100 (51) | 0.967 (0.933-0.990) | 0.667 (34/51) | 0.980 (48/49) |
-| Shenzhen | Montgomery (all) | 138 (58) | 0.826 (0.757-0.889) | 0.414 (24/58) | 0.950 (76/80) |
-| Montgomery | Montgomery (test split) | 21 (9) | 0.954 (0.850-1.000) | 0.333 (3/9) | 1.000 (12/12) |
-| Montgomery | Shenzhen (all) | 662 (336) | 0.810 (0.778-0.841) | 0.336 (113/336) | 0.957 (312/326) |
+| Shenzhen | Shenzhen test split | 100 (51) | 0.953 ± 0.018 | 0.78 ± 0.10 | 0.93 ± 0.04 |
+| Shenzhen | Montgomery, all | 138 (58) | 0.841 ± 0.033 | 0.41 ± 0.12 | 0.95 ± 0.03 |
+| Montgomery | Montgomery test split | 21 (9) | 0.948 ± 0.018 | 0.62 ± 0.22 | 0.98 ± 0.04 |
+| Montgomery | Shenzhen, all | 662 (336) | 0.806 ± 0.029 | 0.52 ± 0.17 | 0.86 ± 0.15 |
 
-Fixed thresholds: 0.978 (Shenzhen model), 0.962 (Montgomery model).
+The ranking gets worse on the other hospital's images. In all 10 runs the
+external AUROC was lower than the in-domain one, going from about 0.95 to about
+0.81 to 0.84. The size of the drop varies a lot between seeds, from 0.03 up to
+0.19.
 
-### What the numbers say
+## What did not work
 
-- **Ranking drops across hospitals.** AUROC falls from about 0.95-0.97 in-domain
-  to about 0.81-0.83 on the other set, in both directions. The in-domain and
-  external confidence intervals do not overlap for the Shenzhen-trained model;
-  for the Montgomery-trained model they only just separate (0.850 vs 0.841),
-  because its in-domain test split has 21 images.
-- **The 90%-specificity threshold did not hold up.** Specificity landed at
-  95-100% instead of 90%, and sensitivity at the fixed threshold is poor:
-  34-41% on external data, and only 67% (Shenzhen) and 3 of 9 (Montgomery)
-  in-domain. The models are overconfident after fitting the training set
-  (train loss near 0.01-0.05), so a threshold picked on a small validation
-  split sits too high. As a screening tool, either model would miss most TB
-  cases on the other hospital's images.
-- **Montgomery in-domain is nearly meaningless.** Its test split has 21 images
-  (9 TB); treat those two rows as anecdotes.
+The threshold. It was meant to give 90% specificity, but on the other
+hospital's images specificity ended up anywhere from 59% to 99%, and
+sensitivity from 21% to 76%. The thresholds themselves were all over the place
+(0.81 to 0.99 for the Shenzhen runs, 0.16 to 1.0 for the Montgomery runs). Two
+Montgomery runs hit a validation AUROC of 1.0 on a validation split of about
+20 images, so the threshold they chose was close to arbitrary.
 
-### Grad-CAM (qualitative, 12 images)
+My guess is that it comes down to overfitting (training loss goes to nearly
+zero) plus very small validation sets. I did not test that.
 
-Heatmaps for the first 3 TB and first 3 normal external images per model were
-generated with `src.gradcam`. They are not committed, because each one is the
-source X-ray with a heatmap on top and the Shenzhen terms ask that the images
-not be shared. They are not cherry-picked, but 12 images cannot prove anything.
+Used as a screening tool at its fixed threshold, the Shenzhen model would miss
+more than half of the TB cases in the Montgomery set, on average.
 
-- Shenzhen model on Montgomery: heat on lung tissue for the TB cases; for
-  normal cases it concentrates in the lower corner near the heart and diaphragm.
-- Montgomery model on Shenzhen: one TB case highlights the upper lung, two TB
-  cases are missed (P(TB) 0.01 and 0.00), and one of those has its only heat
-  over the diaphragm/abdomen. One normal case has its heat in the top corner
-  beside the "L" marker, outside the lungs.
-- Maps are rescaled to 0-1 per image, so for low-probability images they show
-  where the model is relatively most active, not evidence of disease. The
-  off-lung heat is a hint of non-lung cues, not a demonstrated shortcut.
+The Montgomery test split has only 21 images (9 TB), so the in-domain rows for
+that model mean very little.
+
+## Grad-CAM
+
+I made heatmaps for 12 external images (3 TB and 3 normal per model, the first
+ones in file order, not picked). They came from the first seed's models. I'm
+not including them here because they are the original X-rays with a heatmap
+on top, and the Shenzhen terms say not to share the images.
+
+For the Shenzhen model on Montgomery, the TB cases lit up on lung tissue. For
+normal cases the heat sat in the lower corner near the heart and diaphragm.
+For the Montgomery model on Shenzhen, two TB cases were missed, and in one of
+them the only heat was over the diaphragm. One normal case had its heat in the
+top corner next to the "L" marker, outside the lungs. This hints at the model
+using things that are not lungs, but twelve images cannot show that.
 
 ## Limitations
 
-- Both sets are small (hundreds of images), so confidence intervals are wide.
-  The validation splits are only about 20 (Montgomery) and 100 (Shenzhen)
-  images, which makes the chosen epoch and threshold noisy.
-- Single seed and a single split per direction; no repeats, so run-to-run
-  variance is unmeasured. No confidence intervals on sensitivity/specificity.
-- Two sources is a minimal definition of "external". Neither set represents
-  Nepal or South Asia.
-- The two sets differ in country, scanner, population and image format at once;
-  this study cannot say which of those causes the drop.
-- Labels come from the dataset curators, not an independent reading here.
-- A model that works on these images is not evidence it works in a clinic.
+- Both sets are small, so everything is noisy. The validation splits are about
+  20 (Montgomery) and 100 (Shenzhen) images.
+- The two sets differ in country, scanner, population and image format at the
+  same time. I can't say which of those causes the drop.
+- Two sources is a minimal "external" test. Neither set covers South Asia.
+- The labels come from the dataset curators. I did not check them.
+- Doing well on these images says nothing about doing well in a clinic.
 
 ## Getting the data
 
-Download the two sets manually (check each set's licence and terms) and place
-the PNGs like this:
+I did not include the images. Download both sets from the NLM page "Tuberculosis
+Chest X-ray Image Data Sets" and check their terms. The Shenzhen read-me asks
+that the data not be shared outside your research group. Put the PNGs here:
 
 ```
 data/montgomery/MCUCXR_0001_0.png ...
 data/shenzhen/CHNCXR_0001_1.png ...
 ```
 
-The final digit in each file name is the label (0 = normal, 1 = TB). Search for
-"Tuberculosis Chest X-ray Image Data Sets" from the U.S. National Library of
-Medicine (Montgomery County and Shenzhen). Data is gitignored and must not be
-committed. The Shenzhen set's read-me asks that the data not be shared outside
-your research group.
+The last digit in the file name is the label (0 normal, 1 TB). If the data
+lives somewhere else, pass `--data-root <folder>` to the commands below.
 
-If the data lives elsewhere, pass `--data-root <folder>` to `src.train` and
-`src.evaluate` (the folder holds `montgomery/` and `shenzhen/`).
-
-## Run
+## Running it
 
 ```bash
 pip install -r requirements.txt
@@ -123,7 +114,15 @@ python -m src.evaluate --train-on montgomery
 python -m src.gradcam --train-on shenzhen --images data/montgomery/MCUCXR_0001_0.png
 ```
 
-Reports land in `results/<train_on>/report.json`. Tests: `pytest`.
+Extra seeds go in their own folder so they don't overwrite the first run:
+
+```bash
+python -m src.train --train-on shenzhen --seed 1 --run-dir results/seeds/shenzhen_seed1
+python -m src.evaluate --train-on shenzhen --run-dir results/seeds/shenzhen_seed1
+python -m src.aggregate --train-on shenzhen --runs results/shenzhen results/seeds/shenzhen_seed1
+```
+
+Reports are written to `results/<train_on>/report.json`. Tests: `pytest`.
 
 ## References
 
@@ -135,5 +134,7 @@ Department of Health and Human Services, Maryland, USA.
   IEEE Trans Med Imaging. 2014;33(2):233-245.
 - Candemir S, et al. Lung segmentation in chest radiographs using anatomical
   atlases with nonrigid registration. IEEE Trans Med Imaging. 2014;33(2):577-590.
-
-Also cite the ResNet and Grad-CAM papers when you write this up.
+- He K, Zhang X, Ren S, Sun J. Deep residual learning for image recognition.
+  CVPR 2016.
+- Selvaraju RR, et al. Grad-CAM: visual explanations from deep networks via
+  gradient-based localization. ICCV 2017.
