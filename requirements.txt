@@ -1,7 +1,9 @@
-torch>=2.2
-torchvision>=0.17
-numpy
-scikit-learn
-pillow
-matplotlib
-pytest
+# versions the results were produced with (Python 3.12)
+# torch/torchvision were the CUDA 12.8 builds: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0
+torchvision==0.26.0
+numpy==2.5.2
+scikit-learn==1.9.1
+pillow==12.3.0
+matplotlib==3.11.2
+pytest==9.1.1
