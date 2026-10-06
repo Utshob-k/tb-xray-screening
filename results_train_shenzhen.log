@@ -1,0 +1,16 @@
+﻿epoch  1  train loss 0.4636  val AUROC 0.8694
+epoch  2  train loss 0.2655  val AUROC 0.8955
+epoch  3  train loss 0.1960  val AUROC 0.8816
+epoch  4  train loss 0.1387  val AUROC 0.9084
+epoch  5  train loss 0.1296  val AUROC 0.8882
+epoch  6  train loss 0.1433  val AUROC 0.8988
+epoch  7  train loss 0.0817  val AUROC 0.8984
+epoch  8  train loss 0.1054  val AUROC 0.9139
+epoch  9  train loss 0.0643  val AUROC 0.9024
+epoch 10  train loss 0.0606  val AUROC 0.9014
+epoch 11  train loss 0.0770  val AUROC 0.9069
+epoch 12  train loss 0.0655  val AUROC 0.8951
+epoch 13  train loss 0.0781  val AUROC 0.8943
+epoch 14  train loss 0.0881  val AUROC 0.8927
+epoch 15  train loss 0.0542  val AUROC 0.9180
+saved best epoch 15 (val AUROC 0.9180, threshold 0.978) to results\shenzhen

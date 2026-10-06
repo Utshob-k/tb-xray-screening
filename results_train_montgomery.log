@@ -1,0 +1,16 @@
+﻿epoch  1  train loss 0.7335  val AUROC 0.7685
+epoch  2  train loss 0.2940  val AUROC 0.7778
+epoch  3  train loss 0.1106  val AUROC 0.7778
+epoch  4  train loss 0.0616  val AUROC 0.8981
+epoch  5  train loss 0.1099  val AUROC 0.8519
+epoch  6  train loss 0.0506  val AUROC 0.8056
+epoch  7  train loss 0.0246  val AUROC 0.7963
+epoch  8  train loss 0.0530  val AUROC 0.8704
+epoch  9  train loss 0.0291  val AUROC 0.8889
+epoch 10  train loss 0.0266  val AUROC 0.8889
+epoch 11  train loss 0.0034  val AUROC 0.9074
+epoch 12  train loss 0.0074  val AUROC 0.9074
+epoch 13  train loss 0.0076  val AUROC 0.8889
+epoch 14  train loss 0.0073  val AUROC 0.8611
+epoch 15  train loss 0.0139  val AUROC 0.9074
+saved best epoch 11 (val AUROC 0.9074, threshold 0.962) to results\montgomery
