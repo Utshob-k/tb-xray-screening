@@ -2,8 +2,8 @@
 
     python -m src.gradcam --train-on shenzhen --images data/montgomery/MCUCXR_0001_0.png ...
 
-Worth a look by eye. If it lights up on a border, a text marker or a scanner
-artefact instead of the lungs, it has probably learned a shortcut.
+If it lights up on a border, a text marker or a scanner artefact instead of
+the lungs, it has probably learned a shortcut.
 """
 from __future__ import annotations
 

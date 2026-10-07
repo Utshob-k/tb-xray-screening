@@ -48,7 +48,7 @@ def main():
 
     model = build_model().to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
-    # Class imbalance: weight the positive class by neg/pos in the training set.
+    # weight TB by neg/pos so both classes count about equally
     labels = CxrDataset(train_s).labels()
     pos_weight = torch.tensor([(labels == 0).sum() / max((labels == 1).sum(), 1)], dtype=torch.float32, device=device)
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)

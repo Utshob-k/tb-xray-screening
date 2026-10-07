@@ -31,7 +31,7 @@ def main():
     model = build_model(pretrained=False)
     model.load_state_dict(torch.load(run / "model.pt", map_location="cpu"))
     model.to(device)
-    threshold = json.loads((run / "threshold.json").read_text())["threshold"]  # fixed from validation
+    threshold = json.loads((run / "threshold.json").read_text())["threshold"]  # picked on validation in train.py
 
     split = json.loads((run / "split.json").read_text())
     in_domain = [(Path(p), label_from_name(Path(p))) for p in split["test"]]

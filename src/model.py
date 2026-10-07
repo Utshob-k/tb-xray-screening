@@ -1,4 +1,4 @@
-"""Backbone: ImageNet-pretrained ResNet-18 with a single-logit head."""
+"""ResNet-18 pretrained on ImageNet, with a single output."""
 from __future__ import annotations
 
 import torch
@@ -9,7 +9,7 @@ from torchvision import models
 def build_model(pretrained: bool = True) -> nn.Module:
     weights = models.ResNet18_Weights.DEFAULT if pretrained else None
     net = models.resnet18(weights=weights)
-    net.fc = nn.Linear(net.fc.in_features, 1)  # one logit: P(TB) = sigmoid(logit)
+    net.fc = nn.Linear(net.fc.in_features, 1)  # sigmoid of this output is P(TB)
     return net
 
 

@@ -25,8 +25,8 @@ For each direction (train on A, test on B, then swap):
    The test data never touches this.
 4. Test on A's own test split and on every image of B.
 
-I report AUROC, sensitivity and specificity. Accuracy is not the headline,
-because for screening a missed case and a false alarm cost different things.
+I report AUROC, sensitivity and specificity instead of accuracy, because in
+screening a missed case and a false alarm cost different things.
 
 Each direction was run with 5 seeds. The seed changes both the split and the
 initial weights, so the spread below includes both.

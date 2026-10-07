@@ -60,7 +60,7 @@ def split_samples(samples, seed: int = 0, val_frac: float = 0.15, test_frac: flo
 def make_transforms(train: bool, size: int = 224):
     ops = [transforms.Resize((size, size))]
     if train:
-        # Mild augmentation only: no flips (heart side matters), no heavy colour jitter.
+        # light augmentation, no flips because the heart side matters
         ops += [transforms.RandomRotation(7), transforms.ColorJitter(brightness=0.15, contrast=0.15)]
     ops += [transforms.ToTensor(), transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
     return transforms.Compose(ops)
