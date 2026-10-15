@@ -130,6 +130,10 @@ For a reproducible run, keep the same PyTorch/CUDA environment, data files,
 command arguments and `--seed`. Use `--workers 0` if you need to debug data
 loading in the current process.
 
+Automated tests run on each push and pull request. Grad-CAM renderings are
+intentionally ignored because they contain the source X-rays; keep them local
+unless the dataset terms explicitly permit sharing them.
+
 ## References
 
 Data: National Library of Medicine, NIH, Bethesda, MD, USA; Shenzhen No.3

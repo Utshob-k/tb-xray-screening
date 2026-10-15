@@ -4,6 +4,8 @@ data/*
 *.pt
 *.pth
 results/*/model.pt
+# Grad-CAM renders contain source X-rays and must not be published with the repo.
+results/gradcam/
 
 # local tooling notes
 CLAUDE.md
