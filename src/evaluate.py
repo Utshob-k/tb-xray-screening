@@ -29,7 +29,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     run = Path(args.run_dir) if args.run_dir else Path("results") / args.train_on
     model = build_model(pretrained=False)
-    model.load_state_dict(torch.load(run / "model.pt", map_location="cpu"))
+    model.load_state_dict(torch.load(run / "model.pt", map_location="cpu", weights_only=True))
     model.to(device)
     threshold = json.loads((run / "threshold.json").read_text())["threshold"]  # picked on validation in train.py
 

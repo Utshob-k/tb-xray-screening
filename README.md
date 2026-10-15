@@ -122,7 +122,13 @@ python -m src.evaluate --train-on shenzhen --run-dir results/seeds/shenzhen_seed
 python -m src.aggregate --train-on shenzhen --runs results/shenzhen results/seeds/shenzhen_seed1
 ```
 
-Reports are written to `results/<train_on>/report.json`. Tests: `pytest`.
+Reports are written to `results/<train_on>/report.json`. Each training run also
+writes `run_config.json` and records its seed and target specificity alongside
+the selected threshold. Tests: `pytest`.
+
+For a reproducible run, keep the same PyTorch/CUDA environment, data files,
+command arguments and `--seed`. Use `--workers 0` if you need to debug data
+loading in the current process.
 
 ## References
 

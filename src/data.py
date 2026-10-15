@@ -33,6 +33,8 @@ def label_from_name(path: Path) -> int:
 
 
 def list_samples(data_root: Path, name: str) -> list[tuple[Path, int]]:
+    if name not in DATASETS:
+        raise ValueError(f"Unknown dataset {name!r}; choose one of {', '.join(DATASETS)}")
     folder = Path(data_root) / name
     files = sorted(folder.glob("*.png"))
     if not files:
@@ -78,10 +80,12 @@ def _load_resized(path: Path, size: int) -> Image.Image:
         # so every run doesn't decode the big files again
         disk = Path(path).parent / f".cache{size}" / f"{Path(path).stem}.png"
         if disk.exists():
-            _RESIZED[key] = Image.open(disk).convert("RGB")
+            with Image.open(disk) as image:
+                _RESIZED[key] = image.convert("RGB")
         else:
-            image = Image.open(path).convert("RGB")  # X-rays are grayscale; the backbone wants 3 channels
-            _RESIZED[key] = transforms.Resize((size, size))(image)
+            with Image.open(path) as image:
+                # X-rays are grayscale; the backbone wants 3 channels.
+                _RESIZED[key] = transforms.Resize((size, size))(image.convert("RGB"))
             disk.parent.mkdir(exist_ok=True)
             _RESIZED[key].save(disk)
     return _RESIZED[key]

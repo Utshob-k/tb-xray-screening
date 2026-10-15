@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from src.metrics import sens_spec, threshold_at_specificity
+from src.metrics import sens_spec, summarize, threshold_at_specificity
 from src.data import label_from_name
 
 
@@ -21,3 +21,10 @@ def test_sens_spec_perfect_and_threshold():
     t = threshold_at_specificity(y, p, 0.9)
     sens, spec = sens_spec(y, p, t)
     assert spec >= 0.9
+
+
+def test_metrics_reject_single_class_inputs():
+    with pytest.raises(ValueError, match="both classes"):
+        threshold_at_specificity([0, 0], [0.1, 0.2])
+    with pytest.raises(ValueError, match="both classes"):
+        summarize([1, 1], [0.7, 0.8], 0.5)

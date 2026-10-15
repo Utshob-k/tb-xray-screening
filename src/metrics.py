@@ -7,6 +7,9 @@ from sklearn.metrics import roc_auc_score, roc_curve
 
 def threshold_at_specificity(y_true, y_prob, target_spec: float = 0.90) -> float:
     """Threshold that gives at least target_spec specificity. Use validation data, not test."""
+    _validate_binary_inputs(y_true, y_prob)
+    if not 0 < target_spec <= 1:
+        raise ValueError("target_spec must be in (0, 1]")
     fpr, tpr, thr = roc_curve(y_true, y_prob)
     ok = np.where(1 - fpr >= target_spec)[0]
     return float(thr[ok[-1]]) if len(ok) else float(thr[0])
@@ -24,8 +27,27 @@ def sens_spec(y_true, y_prob, threshold: float) -> tuple[float, float]:
     return float(sens), float(spec)
 
 
+def _validate_binary_inputs(y_true, y_prob) -> None:
+    """Give a clear error before sklearn produces a cryptic metric failure."""
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+    if y_true.ndim != 1 or y_prob.ndim != 1 or len(y_true) != len(y_prob):
+        raise ValueError("y_true and y_prob must be one-dimensional arrays of equal length")
+    if not len(y_true):
+        raise ValueError("metrics need at least one sample")
+    if not np.isin(y_true, (0, 1)).all():
+        raise ValueError("y_true must contain only binary labels 0 and 1")
+    if len(np.unique(y_true)) != 2:
+        raise ValueError("AUROC and threshold selection need both classes")
+
+
 def bootstrap_ci(y_true, y_prob, fn, n: int = 1000, seed: int = 0, alpha: float = 0.05):
     """Percentile bootstrap interval for any metric fn(y_true, y_prob)."""
+    _validate_binary_inputs(y_true, y_prob)
+    if n < 1:
+        raise ValueError("n must be positive")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be in (0, 1)")
     rng = np.random.default_rng(seed)
     y_true, y_prob = np.asarray(y_true), np.asarray(y_prob)
     stats = []
@@ -39,6 +61,7 @@ def bootstrap_ci(y_true, y_prob, fn, n: int = 1000, seed: int = 0, alpha: float 
 
 
 def summarize(y_true, y_prob, threshold: float) -> dict:
+    _validate_binary_inputs(y_true, y_prob)
     auc = float(roc_auc_score(y_true, y_prob))
     sens, spec = sens_spec(y_true, y_prob, threshold)
     return {
