@@ -122,6 +122,19 @@ python -m src.evaluate --train-on shenzhen --run-dir results/seeds/shenzhen_seed
 python -m src.aggregate --train-on shenzhen --runs results/shenzhen results/seeds/shenzhen_seed1
 ```
 
+To reproduce the full five-seed study in a single command (both training
+directions), use:
+
+```bash
+python -m src.run_experiments --seeds 0 1 2 3 4
+```
+
+It writes each run to `results/reproduction/seeds/` and the summaries to
+`results/reproduction/<train_on>/seeds_summary.json`. To run just one
+direction, add for example `--train-on shenzhen`. The command stops immediately
+if any train or evaluation run fails and refuses to overwrite a run directory;
+choose a different `--results-dir` for an incomplete or new experiment.
+
 Reports are written to `results/<train_on>/report.json`. Each training run also
 writes `run_config.json` and records its seed and target specificity alongside
 the selected threshold. Tests: `pytest`.

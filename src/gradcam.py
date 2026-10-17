@@ -1,4 +1,4 @@
-"""Grad-CAM heatmaps, to see where the model is looking.
+"""Write Grad-CAM heatmaps that show where the model is looking.
 
     python -m src.gradcam --train-on shenzhen --images data/montgomery/MCUCXR_0001_0.png ...
 
@@ -24,7 +24,7 @@ from .model import build_model
 
 
 def grad_cam(model, x: torch.Tensor) -> np.ndarray:
-    """Heatmap for the TB logit from the last ResNet block, scaled to 0-1 at input size."""
+    """Make a 0-to-1 heatmap for the TB logit from the last ResNet block."""
     feats, grads = {}, {}
     layer = model.layer4
     h1 = layer.register_forward_hook(lambda m, i, o: feats.update(a=o))

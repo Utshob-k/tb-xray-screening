@@ -1,4 +1,4 @@
-"""ResNet-18 pretrained on ImageNet, with a single output."""
+"""An ImageNet-initialized ResNet-18 with one TB logit."""
 from __future__ import annotations
 
 import torch
@@ -9,7 +9,7 @@ from torchvision import models
 def build_model(pretrained: bool = True) -> nn.Module:
     weights = models.ResNet18_Weights.DEFAULT if pretrained else None
     net = models.resnet18(weights=weights)
-    net.fc = nn.Linear(net.fc.in_features, 1)  # sigmoid of this output is P(TB)
+    net.fc = nn.Linear(net.fc.in_features, 1)  # Its sigmoid is P(TB).
     return net
 
 

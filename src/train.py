@@ -1,4 +1,4 @@
-"""Train on one dataset, keep the best epoch by validation AUROC.
+"""Train on one dataset and retain the epoch with the best validation AUROC.
 
     python -m src.train --train-on shenzhen --epochs 15
 
@@ -54,7 +54,7 @@ def main():
         "test": [str(p) for p, _ in test_s],
     }, indent=1))
 
-    # Supplying a generator fixes shuffle order for a given seed as well.
+    # Seed shuffling too, not just the model initialization.
     generator = torch.Generator().manual_seed(args.seed)
     train_dl = DataLoader(CxrDataset(train_s, train=True), batch_size=args.batch_size, shuffle=True,
                           num_workers=args.workers, generator=generator)
@@ -62,9 +62,13 @@ def main():
 
     model = build_model().to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
-    # weight TB by neg/pos so both classes count about equally
+    # Give positive and negative cases roughly equal weight in the loss.
     labels = np.array([label for _, label in train_s])
-    pos_weight = torch.tensor([(labels == 0).sum() / max((labels == 1).sum(), 1)], dtype=torch.float32, device=device)
+    pos_weight = torch.tensor(
+        [(labels == 0).sum() / max((labels == 1).sum(), 1)],
+        dtype=torch.float32,
+        device=device,
+    )
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     best_auc, best = -1.0, None

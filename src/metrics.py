@@ -1,4 +1,4 @@
-"""Threshold choice, sensitivity/specificity and bootstrap intervals."""
+"""Metrics used for threshold selection and evaluation."""
 from __future__ import annotations
 
 import numpy as np
@@ -6,7 +6,7 @@ from sklearn.metrics import roc_auc_score, roc_curve
 
 
 def threshold_at_specificity(y_true, y_prob, target_spec: float = 0.90) -> float:
-    """Threshold that gives at least target_spec specificity. Use validation data, not test."""
+    """Find the lowest threshold that meets the requested specificity."""
     _validate_binary_inputs(y_true, y_prob)
     if not 0 < target_spec <= 1:
         raise ValueError("target_spec must be in (0, 1]")
@@ -28,7 +28,7 @@ def sens_spec(y_true, y_prob, threshold: float) -> tuple[float, float]:
 
 
 def _validate_binary_inputs(y_true, y_prob) -> None:
-    """Give a clear error before sklearn produces a cryptic metric failure."""
+    """Catch invalid labels before asking sklearn for an AUROC."""
     y_true = np.asarray(y_true)
     y_prob = np.asarray(y_prob)
     if y_true.ndim != 1 or y_prob.ndim != 1 or len(y_true) != len(y_prob):
@@ -42,7 +42,7 @@ def _validate_binary_inputs(y_true, y_prob) -> None:
 
 
 def bootstrap_ci(y_true, y_prob, fn, n: int = 1000, seed: int = 0, alpha: float = 0.05):
-    """Percentile bootstrap interval for any metric fn(y_true, y_prob)."""
+    """Return a percentile bootstrap interval for a metric."""
     _validate_binary_inputs(y_true, y_prob)
     if n < 1:
         raise ValueError("n must be positive")
@@ -50,9 +50,7 @@ def bootstrap_ci(y_true, y_prob, fn, n: int = 1000, seed: int = 0, alpha: float 
         raise ValueError("alpha must be in (0, 1)")
     y_true, y_prob = np.asarray(y_true), np.asarray(y_prob)
     rng = np.random.default_rng(seed)
-    # Resample within each class so every bootstrap replicate can evaluate
-    # AUROC, sensitivity, and specificity. Unstratified resampling can produce
-    # no usable draws for small, imbalanced studies.
+    # Each draw needs both classes; small datasets can lose one by chance.
     class_indices = [np.flatnonzero(y_true == label) for label in (0, 1)]
     stats = []
     for _ in range(n):

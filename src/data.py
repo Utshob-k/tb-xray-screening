@@ -1,13 +1,13 @@
-"""Loads the two TB chest X-ray sets.
+"""Load the two TB chest X-ray datasets.
 
 Layout (see the README):
 
     data/montgomery/*.png     e.g. MCUCXR_0001_0.png
     data/shenzhen/*.png       e.g. CHNCXR_0001_1.png
 
-The label is the last digit in the file name: 0 normal, 1 TB. Every file is a
-different patient, so a random split of files is a split by patient. A set
-with several images per patient would need splitting on patient id instead.
+The final filename digit is the label: 0 is normal and 1 is TB. Each file is a
+different patient, so splitting files also splits patients. Datasets with more
+than one image per patient would need a patient-level split instead.
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
 def label_from_name(path: Path) -> int:
-    """'CHNCXR_0001_1.png' -> 1. Raises on anything unexpected."""
+    """Read the final label digit: CHNCXR_0001_1.png becomes 1."""
     suffix = path.stem.rsplit("_", 1)[-1]
     if suffix not in ("0", "1"):
         raise ValueError(f"Cannot read a label from file name: {path.name}")
@@ -43,15 +43,17 @@ def list_samples(data_root: Path, name: str) -> list[tuple[Path, int]]:
 
 
 def split_samples(samples, seed: int = 0, val_frac: float = 0.15, test_frac: float = 0.15):
-    """Stratified train/val/test split. One image per patient, so this is patient-level."""
+    """Make a stratified train/validation/test split by patient."""
     if not 0 < val_frac < 1 or not 0 < test_frac < 1 or val_frac + test_frac >= 1:
         raise ValueError("val_frac and test_frac must be positive and sum to less than 1")
-    paths = [s[0] for s in samples]
-    labels = [s[1] for s in samples]
-    if len(paths) != len(labels) or not paths:
+    samples = list(samples)
+    if not samples:
         raise ValueError("samples must be a non-empty sequence of (path, binary_label) pairs")
-    counts = np.bincount(labels, minlength=2) if all(label in (0, 1) for label in labels) else np.array([])
-    if len(counts) != 2 or np.any(counts < 3):
+    paths, labels = zip(*samples)
+    if any(label not in (0, 1) for label in labels):
+        raise ValueError("samples must use binary labels 0 and 1")
+    counts = np.bincount(labels, minlength=2)
+    if np.any(counts < 3):
         raise ValueError("each class needs at least three samples for a stratified train/validation/test split")
     p_train, p_rest, y_train, y_rest = train_test_split(
         paths, labels, test_size=val_frac + test_frac, stratify=labels, random_state=seed
@@ -69,7 +71,7 @@ def split_samples(samples, seed: int = 0, val_frac: float = 0.15, test_frac: flo
 def make_transforms(train: bool, size: int = 224):
     ops = [transforms.Resize((size, size))]
     if train:
-        # light augmentation, no flips because the heart side matters
+        # Keep augmentation mild and preserve left/right anatomy.
         ops += [transforms.RandomRotation(7), transforms.ColorJitter(brightness=0.15, contrast=0.15)]
     ops += [transforms.ToTensor(), transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
     return transforms.Compose(ops)
@@ -79,19 +81,17 @@ _RESIZED: dict[tuple[Path, int], Image.Image] = {}
 
 
 def _load_resized(path: Path, size: int) -> Image.Image:
-    """Decode and resize once, then reuse. The PNGs are about 3000x3000 and
-    decoding them every epoch left the GPU sitting idle."""
+    """Reuse a resized image instead of decoding the large PNG every epoch."""
     key = (Path(path), size)
     if key not in _RESIZED:
-        # also cache the resized image on disk next to the data (the *.png glob skips it)
-        # so every run doesn't decode the big files again
+        # A hidden cache beside the data keeps later runs from decoding again.
         disk = Path(path).parent / f".cache{size}" / f"{Path(path).stem}.png"
         if disk.exists():
             with Image.open(disk) as image:
                 _RESIZED[key] = image.convert("RGB")
         else:
             with Image.open(path) as image:
-                # X-rays are grayscale; the backbone wants 3 channels.
+                # The pretrained backbone expects three channels.
                 _RESIZED[key] = transforms.Resize((size, size))(image.convert("RGB"))
             disk.parent.mkdir(exist_ok=True)
             _RESIZED[key].save(disk)
@@ -101,7 +101,7 @@ def _load_resized(path: Path, size: int) -> Image.Image:
 class CxrDataset(Dataset):
     def __init__(self, samples, train: bool = False, size: int = 224):
         self.samples = list(samples)
-        # same transforms as make_transforms, minus the Resize the cache already did
+        # Resize already happened when the image entered the cache.
         self.tf = transforms.Compose(make_transforms(train, size).transforms[1:])
         self.images = [_load_resized(p, size) for p, _ in self.samples]
 
@@ -110,6 +110,3 @@ class CxrDataset(Dataset):
 
     def __getitem__(self, i):
         return self.tf(self.images[i]), self.samples[i][1]
-
-    def labels(self) -> np.ndarray:
-        return np.array([y for _, y in self.samples])

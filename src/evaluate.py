@@ -1,9 +1,9 @@
-"""Test a trained model on its own test split and on the other dataset.
+"""Evaluate a trained model on its own test split and the other dataset.
 
     python -m src.evaluate --train-on shenzhen
 
-The test split is the one saved when the model was trained. The other
-dataset is used in full. The gap between the two is what this project is about.
+The saved test split is used in-domain; every image in the other dataset is
+used externally. Comparing the two is the point of the project.
 """
 from __future__ import annotations
 
