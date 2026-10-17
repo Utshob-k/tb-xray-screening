@@ -34,13 +34,15 @@ def main():
     ap.add_argument("--run-dir", default=None, help="output folder (default: results/<train_on>)")
     args = ap.parse_args()
 
-    if args.epochs < 1 or args.batch_size < 1 or args.workers < 0:
-        ap.error("--epochs and --batch-size must be positive; --workers cannot be negative")
+    if args.epochs < 1 or args.batch_size < 1 or args.lr <= 0 or args.workers < 0:
+        ap.error("--epochs, --batch-size, and --lr must be positive; --workers cannot be negative")
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     device = "cuda" if torch.cuda.is_available() else "cpu"
     out = Path(args.run_dir) if args.run_dir else Path("results") / args.train_on
     out.mkdir(parents=True, exist_ok=True)
@@ -61,7 +63,7 @@ def main():
     model = build_model().to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     # weight TB by neg/pos so both classes count about equally
-    labels = CxrDataset(train_s).labels()
+    labels = np.array([label for _, label in train_s])
     pos_weight = torch.tensor([(labels == 0).sum() / max((labels == 1).sum(), 1)], dtype=torch.float32, device=device)
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 

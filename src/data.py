@@ -44,8 +44,15 @@ def list_samples(data_root: Path, name: str) -> list[tuple[Path, int]]:
 
 def split_samples(samples, seed: int = 0, val_frac: float = 0.15, test_frac: float = 0.15):
     """Stratified train/val/test split. One image per patient, so this is patient-level."""
+    if not 0 < val_frac < 1 or not 0 < test_frac < 1 or val_frac + test_frac >= 1:
+        raise ValueError("val_frac and test_frac must be positive and sum to less than 1")
     paths = [s[0] for s in samples]
     labels = [s[1] for s in samples]
+    if len(paths) != len(labels) or not paths:
+        raise ValueError("samples must be a non-empty sequence of (path, binary_label) pairs")
+    counts = np.bincount(labels, minlength=2) if all(label in (0, 1) for label in labels) else np.array([])
+    if len(counts) != 2 or np.any(counts < 3):
+        raise ValueError("each class needs at least three samples for a stratified train/validation/test split")
     p_train, p_rest, y_train, y_rest = train_test_split(
         paths, labels, test_size=val_frac + test_frac, stratify=labels, random_state=seed
     )

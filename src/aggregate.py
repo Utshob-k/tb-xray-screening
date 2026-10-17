@@ -16,6 +16,14 @@ import numpy as np
 METRICS = ("auroc", "sensitivity", "specificity", "threshold")
 
 
+def mean_and_sd(values) -> tuple[float, float]:
+    """Population-independent sample spread; a single completed run has zero spread."""
+    values = np.asarray(values, dtype=float)
+    if not len(values):
+        raise ValueError("cannot aggregate an empty set of values")
+    return float(values.mean()), float(values.std(ddof=1)) if len(values) > 1 else 0.0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--train-on", required=True)
@@ -30,8 +38,9 @@ def main():
         print(f"\n{setting}  (n={rows[0]['n']}, TB={rows[0]['n_tb']}, runs={len(rows)})")
         for m in METRICS:
             v = np.array([r[m] for r in rows])
-            summary[setting][m] = {"values": v.tolist(), "mean": float(v.mean()), "sd": float(v.std(ddof=1))}
-            print(f"  {m:12s} mean {v.mean():.3f}  sd {v.std(ddof=1):.3f}  min {v.min():.3f}  max {v.max():.3f}  "
+            mean, sd = mean_and_sd(v)
+            summary[setting][m] = {"values": v.tolist(), "mean": mean, "sd": sd}
+            print(f"  {m:12s} mean {mean:.3f}  sd {sd:.3f}  min {v.min():.3f}  max {v.max():.3f}  "
                   f"values {[round(x, 3) for x in v]}")
     out = Path("results") / args.train_on / "seeds_summary.json"
     out.write_text(json.dumps(summary, indent=2))

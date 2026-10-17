@@ -48,13 +48,15 @@ def bootstrap_ci(y_true, y_prob, fn, n: int = 1000, seed: int = 0, alpha: float 
         raise ValueError("n must be positive")
     if not 0 < alpha < 1:
         raise ValueError("alpha must be in (0, 1)")
-    rng = np.random.default_rng(seed)
     y_true, y_prob = np.asarray(y_true), np.asarray(y_prob)
+    rng = np.random.default_rng(seed)
+    # Resample within each class so every bootstrap replicate can evaluate
+    # AUROC, sensitivity, and specificity. Unstratified resampling can produce
+    # no usable draws for small, imbalanced studies.
+    class_indices = [np.flatnonzero(y_true == label) for label in (0, 1)]
     stats = []
     for _ in range(n):
-        idx = rng.integers(0, len(y_true), len(y_true))
-        if len(set(y_true[idx])) < 2:  # resample landed on one class only
-            continue
+        idx = np.concatenate([rng.choice(indices, size=len(indices), replace=True) for indices in class_indices])
         stats.append(fn(y_true[idx], y_prob[idx]))
     lo, hi = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)])
     return float(lo), float(hi)

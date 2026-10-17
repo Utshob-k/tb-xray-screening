@@ -47,13 +47,14 @@ def main():
     args = ap.parse_args()
 
     model = build_model(pretrained=False)
-    model.load_state_dict(torch.load(Path("results") / args.train_on / "model.pt", map_location="cpu"))
+    model.load_state_dict(torch.load(Path("results") / args.train_on / "model.pt", map_location="cpu", weights_only=True))
     model.eval()
     tf = make_transforms(train=False)
     Path(args.out).mkdir(parents=True, exist_ok=True)
 
     for p in args.images:
-        img = Image.open(p).convert("RGB")
+        with Image.open(p) as source:
+            img = source.convert("RGB")
         x = tf(img).unsqueeze(0)
         prob = torch.sigmoid(model(x)).item()
         cam = grad_cam(model, x)

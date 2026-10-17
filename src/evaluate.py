@@ -23,8 +23,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--train-on", required=True, choices=list(DATASETS))
     ap.add_argument("--data-root", default="data")
+    ap.add_argument("--workers", type=int, default=2, help="DataLoader worker processes")
     ap.add_argument("--run-dir", default=None, help="folder written by src.train (default: results/<train_on>)")
     args = ap.parse_args()
+    if args.workers < 0:
+        ap.error("--workers cannot be negative")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     run = Path(args.run_dir) if args.run_dir else Path("results") / args.train_on
@@ -40,7 +43,7 @@ def main():
 
     report = {}
     for name, samples in ((f"in-domain ({args.train_on} test split)", in_domain), (f"external ({other}, all images)", external)):
-        dl = DataLoader(CxrDataset(samples), batch_size=32, num_workers=2)
+        dl = DataLoader(CxrDataset(samples), batch_size=32, num_workers=args.workers)
         probs, ys = predict_proba(model, dl, device)
         report[name] = summarize(ys, probs, threshold)
         r = report[name]
